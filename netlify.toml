@@ -1,0 +1,12 @@
+[build]
+  publish = "."
+
+[[redirects]]
+  from = "/report"
+  to = "/SmartPark_Project_Report.html"
+  status = 200
+
+[[redirects]]
+  from = "/paper"
+  to = "/SmartPark_Project_Report.html"
+  status = 200

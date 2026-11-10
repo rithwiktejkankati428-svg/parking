@@ -1,0 +1,20 @@
+# Compiled Java classes
+bin/
+*.class
+
+# Sensitive configurations and credentials
+config/*
+!config/oauth.properties.example
+*.properties
+
+# Runtime logs
+*.log
+run_log.txt
+migration.log
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db

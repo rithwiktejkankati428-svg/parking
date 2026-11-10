@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartPark Campus – Intelligent Micro-Mobility & Parking Management</title>
+  <meta name="description" content="Intelligent multi-tier campus parking & access management system featuring spatial Euclidean proximity recommendations, ACID pessimistic row locking, and ZXing optical QR gate automation.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0f1d;
+      --bg-secondary: #0f172a;
+      --bg-card: rgba(15, 23, 42, 0.75);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --accent-blue: #3b82f6;
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-purple: #8b5cf6;
+      --accent-amber: #f59e0b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Ambient background glows */
+    .glow-bg {
+      position: fixed;
+      top: -150px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 450px;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.22) 0%, rgba(6, 182, 212, 0.08) 50%, transparent 80%);
+      filter: blur(80px);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Navigation */
+    header {
+      position: sticky;
+      top: 0;
+      backdrop-filter: blur(16px);
+      background: rgba(10, 15, 29, 0.82);
+      border-bottom: 1px solid var(--border-color);
+      z-index: 100;
+    }
+
+    .nav-wrapper {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 72px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 20px;
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
+    }
+
+    .brand-text h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .brand-text span {
+      font-size: 11px;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-main);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 13.5px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #2563eb, #0284c7);
+      color: #ffffff;
+      box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+      transform: translateY(-2px);
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 80px 0 60px 0;
+      text-align: center;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      padding: 6px 16px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #60a5fa;
+      margin-bottom: 24px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .badge-pill .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+    }
+
+    .hero h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 48px;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -1px;
+      margin-bottom: 20px;
+      background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero h2 span {
+      background: linear-gradient(135deg, #60a5fa 0%, #38bdf8 50%, #34d399 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: 18px;
+      color: var(--text-muted);
+      max-width: 760px;
+      margin: 0 auto 36px auto;
+      line-height: 1.6;
+    }
+
+    .hero-actions {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 50px;
+    }
+
+    /* Live Interactive Map Simulation Section */
+    .simulation-section {
+      padding: 40px 0 80px 0;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .section-header h3 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 10px;
+    }
+
+    .section-header p {
+      color: var(--text-muted);
+      font-size: 16px;
+    }
+
+    .sim-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      backdrop-filter: blur(16px);
+      padding: 30px;
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+    }
+
+    .sim-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .control-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 6px;
+    }
+
+    .control-group select {
+      width: 100%;
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-main);
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .control-group select:focus {
+      border-color: var(--accent-blue);
+    }
+
+    .sim-map-container {
+      display: grid;
+      grid-template-columns: 2.2fr 1fr;
+      gap: 24px;
+      min-height: 420px;
+    }
+
+    @media (max-width: 900px) {
+      .sim-map-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .canvas-box {
+      background: radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .canvas-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 18px;
+      background: rgba(0, 0, 0, 0.3);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 12px;
+    }
+
+    .legend-items {
+      display: flex;
+      gap: 14px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+    }
+
+    .dot-avail { background: #10b981; }
+    .dot-rec { background: #3b82f6; box-shadow: 0 0 10px #3b82f6; }
+    .dot-occ { background: #ef4444; }
+    .dot-ev { background: #06b6d4; }
+
+    .map-grid {
+      flex: 1;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      align-content: center;
+    }
+
+    .slot-card {
+      background: rgba(30, 41, 59, 0.85);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 16px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+
+    .slot-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .slot-card.recommended {
+      border-color: var(--accent-blue);
+      background: rgba(37, 99, 235, 0.2);
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+      animation: pulseGlow 2s infinite;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 15px rgba(59, 130, 246, 0.35); }
+      50% { box-shadow: 0 0 25px rgba(59, 130, 246, 0.65); }
+    }
+
+    .slot-card.occupied {
+      opacity: 0.65;
+      border-color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+      cursor: not-allowed;
+    }
+
+    .slot-card.ev {
+      border-color: #06b6d4;
+    }
+
+    .slot-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 16px;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .slot-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-avail { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .badge-rec { background: rgba(59, 130, 246, 0.3); color: #93c5fd; }
+    .badge-occ { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+    .badge-ev { background: rgba(6, 182, 212, 0.2); color: #67e8f9; }
+
+    .rec-panel {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .rec-panel h4 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #60a5fa;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stat-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 8px;
+    }
+
+    .stat-row span:first-child {
+      color: var(--text-muted);
+    }
+
+    .stat-row span:last-child {
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      width: 90%;
+      max-width: 440px;
+      padding: 30px;
+      text-align: center;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    }
+
+    .modal-qr {
+      width: 180px;
+      height: 180px;
+      background: #ffffff;
+      padding: 10px;
+      border-radius: 10px;
+      margin: 20px auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Embedded Report Section */
+    .report-section {
+      padding: 60px 0;
+    }
+
+    .report-frame-box {
+      width: 100%;
+      height: 750px;
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      overflow: hidden;
+      background: #ffffff;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    }
+
+    .report-frame-box iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* Feature Cards */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+      margin: 40px 0;
+    }
+
+    .feat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 24px;
+      transition: transform 0.2s ease;
+    }
+
+    .feat-card:hover {
+      transform: translateY(-4px);
+    }
+
+    .feat-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 16px;
+    }
+
+    .feat-card h4 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .feat-card p {
+      color: var(--text-muted);
+      font-size: 13.5px;
+      line-height: 1.5;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-color);
+      padding: 40px 0;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="glow-bg"></div>
+
+  <!-- Header -->
+  <header>
+    <div class="container nav-wrapper">
+      <a href="#" class="brand">
+        <div class="brand-icon">P</div>
+        <div class="brand-text">
+          <h1>SmartPark</h1>
+          <span>Campus System</span>
+        </div>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#simulation">Live Simulation</a></li>
+        <li><a href="#architecture">Architecture</a></li>
+        <li><a href="#report">Full Academic Report</a></li>
+        <li><a href="https://github.com/rithwiktejkankati428-svg/smart-parking-campus" target="_blank">GitHub</a></li>
+      </ul>
+      <div>
+        <a href="SmartPark_Project_Report.html" target="_blank" class="btn btn-primary">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          Print / PDF Report
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <div class="badge-pill">
+        <span class="dot"></span>
+        SRM Institute of Science & Technology &bull; Trichy Campus
+      </div>
+      <h2>Intelligent Micro-Mobility &amp;<br><span>Smart Parking Access Management</span></h2>
+      <p>
+        A native multi-tier architecture featuring spatial Euclidean proximity recommendations, 
+        ACID pessimistic row locking against double-booking, and optical QR gate verification.
+      </p>
+      <div class="hero-actions">
+        <a href="#simulation" class="btn btn-primary" style="padding: 12px 26px; font-size: 15px;">
+          🚀 Try Live Parking Simulation
+        </a>
+        <a href="#report" class="btn btn-secondary" style="padding: 12px 26px; font-size: 15px;">
+          📖 Read Full IEEE Project Report
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Live Simulation Section -->
+  <section id="simulation" class="simulation-section">
+    <div class="container">
+      <div class="section-header">
+        <h3>Interactive Recommendation Simulation</h3>
+        <p>Test the Euclidean spatial proximity algorithm and EV allocation engine directly in your browser.</p>
+      </div>
+
+      <div class="sim-card">
+        <!-- Controls -->
+        <div class="sim-controls">
+          <div class="control-group">
+            <label>Destination Building</label>
+            <select id="selBuilding" onchange="runSimulation()">
+              <option value="cse">CSE Academic Block (x=10, y=50)</option>
+              <option value="mech">Mechanical Block (x=80, y=20)</option>
+              <option value="lib">Central Library (x=40, y=40)</option>
+              <option value="play">Trichy Playground (x=90, y=90)</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label>Vehicle Type</label>
+            <select id="selVehicle" onchange="runSimulation()">
+              <option value="TWO_WHEELER">Two-Wheeler (2W)</option>
+              <option value="FOUR_WHEELER">Four-Wheeler (4W)</option>
+              <option value="EV">Electric Vehicle (EV Charging)</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label>User Role</label>
+            <select id="selRole" onchange="runSimulation()">
+              <option value="STUDENT">Student Commuter</option>
+              <option value="FACULTY">Faculty Member (+100 Priority)</option>
+              <option value="VISITOR">Campus Visitor</option>
+            </select>
+          </div>
+
+          <div class="control-group" style="display: flex; align-items: flex-end;">
+            <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="runSimulation()">
+              ⚡ Recalculate Recommendation
+            </button>
+          </div>
+        </div>
+
+        <!-- Map & Result -->
+        <div class="sim-map-container">
+          <div class="canvas-box">
+            <div class="canvas-toolbar">
+              <span style="font-weight: 600; color: #94a3b8;">Campus Parking Grid (12 Monitored Bays)</span>
+              <div class="legend-items">
+                <div class="legend-item"><span class="legend-dot dot-avail"></span> Available</div>
+                <div class="legend-item"><span class="legend-dot dot-rec"></span> Recommended</div>
+                <div class="legend-item"><span class="legend-dot dot-ev"></span> EV Charger</div>
+                <div class="legend-item"><span class="legend-dot dot-occ"></span> Occupied</div>
+              </div>
+            </div>
+
+            <div class="map-grid" id="slotsGrid">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <div class="rec-panel">
+            <div>
+              <h4>
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Optimal Recommendation
+              </h4>
+              <p style="font-size: 13px; color: var(--text-muted);">
+                Calculated using: $Score = 1000 - (10 \\times D) + Bonus_{EV} + Bonus_{Faculty}$
+              </p>
+
+              <div class="stat-list">
+                <div class="stat-row">
+                  <span>Assigned Slot</span>
+                  <span id="statSlot" style="color: #60a5fa; font-size: 15px;">A01</span>
+                </div>
+                <div class="stat-row">
+                  <span>Walking Distance</span>
+                  <span id="statDist">~7.07 meters</span>
+                </div>
+                <div class="stat-row">
+                  <span>Recommendation Score</span>
+                  <span id="statScore" style="color: #34d399;">929.3 pts</span>
+                </div>
+                <div class="stat-row">
+                  <span>EV Charger Support</span>
+                  <span id="statEv">No</span>
+                </div>
+                <div class="stat-row">
+                  <span>Pessimistic Lock</span>
+                  <span style="color: #c084fc;">FOR UPDATE (ACID)</span>
+                </div>
+              </div>
+            </div>
+
+            <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="openBookingModal()">
+              🎟️ Simulate Booking & Generate Pass
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Architectural Pillars -->
+  <section id="architecture" style="padding: 40px 0;">
+    <div class="container">
+      <div class="section-header">
+        <h3>Core Architectural Pillars</h3>
+        <p>Built with enterprise Java paradigms for resilience, speed, and absolute concurrency control.</p>
+      </div>
+
+      <div class="feature-grid">
+        <div class="feat-card">
+          <div class="feat-icon" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa;">📐</div>
+          <h4>Spatial Euclidean Optimization</h4>
+          <p>Calculates dynamic coordinates $D = \sqrt{\Delta x^2 + \Delta y^2}$ to minimize pedestrian walking transit across SRM Trichy academic blocks.</p>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-icon" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">🔒</div>
+          <h4>Pessimistic Row Locking</h4>
+          <p>Operates under <code>TRANSACTION_SERIALIZABLE</code> with <code>SELECT ... FOR UPDATE</code> to physically eliminate double-booking race conditions.</p>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-icon" style="background: rgba(6, 182, 212, 0.15); color: #67e8f9;">⚡</div>
+          <h4>EV Charging Bay Priority</h4>
+          <p>Grants a $+500$ point algorithm incentive to guarantee designated high-voltage charging bays remain exclusive to Electric Vehicles.</p>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-icon" style="background: rgba(139, 92, 246, 0.15); color: #c084fc;">📷</div>
+          <h4>ZXing & Webcam Gate Verification</h4>
+          <p>Generates encrypted 2D BitMatrix QR passes validated at gate checkpoints using the Sarxos Webcam frame decoding pipeline.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Full Academic Report Section -->
+  <section id="report" class="report-section">
+    <div class="container">
+      <div class="section-header">
+        <h3>Full Academic Project Report &amp; IEEE Specification</h3>
+        <p>Complete 18-chapter technical thesis with benchmarks, literature review, and viva voce defense.</p>
+      </div>
+
+      <div class="report-frame-box">
+        <iframe src="SmartPark_Project_Report.html" title="Full Project Report"></iframe>
+      </div>
+
+      <div style="text-align: center; margin-top: 20px;">
+        <a href="SmartPark_Project_Report.html" target="_blank" class="btn btn-secondary">
+          ↗️ Open Report in Full Window
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Booking Modal -->
+  <div class="modal-overlay" id="modalOverlay" onclick="closeBookingModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <h3 style="font-family: 'Outfit'; font-size: 20px; color: #fff; margin-bottom: 6px;">
+        🎉 Reservation Confirmed!
+      </h3>
+      <p style="font-size: 13px; color: var(--text-muted);">
+        Your digital QR parking pass has been generated. Present this at the gate checkpoint.
+      </p>
+
+      <div class="modal-qr" id="qrContainer">
+        <!-- SVG QR Mock -->
+        <svg width="150" height="150" viewBox="0 0 150 150">
+          <rect width="150" height="150" fill="#ffffff"/>
+          <!-- Position Markers -->
+          <rect x="10" y="10" width="35" height="35" fill="#000000"/>
+          <rect x="15" y="15" width="25" height="25" fill="#ffffff"/>
+          <rect x="20" y="20" width="15" height="15" fill="#000000"/>
+
+          <rect x="105" y="10" width="35" height="35" fill="#000000"/>
+          <rect x="110" y="15" width="25" height="25" fill="#ffffff"/>
+          <rect x="115" y="20" width="15" height="15" fill="#000000"/>
+
+          <rect x="10" y="105" width="35" height="35" fill="#000000"/>
+          <rect x="15" y="110" width="25" height="25" fill="#ffffff"/>
+          <rect x="20" y="115" width="15" height="15" fill="#000000"/>
+
+          <!-- Mock Barcode Bits -->
+          <rect x="55" y="15" width="8" height="8" fill="#000"/>
+          <rect x="70" y="20" width="8" height="8" fill="#000"/>
+          <rect x="55" y="35" width="8" height="8" fill="#000"/>
+          <rect x="85" y="35" width="8" height="8" fill="#000"/>
+
+          <rect x="20" y="55" width="8" height="8" fill="#000"/>
+          <rect x="35" y="65" width="8" height="8" fill="#000"/>
+          <rect x="55" y="60" width="12" height="12" fill="#000"/>
+          <rect x="75" y="55" width="8" height="8" fill="#000"/>
+          <rect x="90" y="70" width="8" height="8" fill="#000"/>
+          <rect x="110" y="60" width="12" height="12" fill="#000"/>
+          <rect x="130" y="75" width="8" height="8" fill="#000"/>
+
+          <rect x="60" y="90" width="10" height="10" fill="#000"/>
+          <rect x="80" y="95" width="10" height="10" fill="#000"/>
+          <rect x="100" y="90" width="8" height="8" fill="#000"/>
+          <rect x="120" y="105" width="12" height="12" fill="#000"/>
+          <rect x="60" y="115" width="12" height="12" fill="#000"/>
+          <rect x="95" y="125" width="10" height="10" fill="#000"/>
+        </svg>
+      </div>
+
+      <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px; font-size: 12px; margin-bottom: 20px;">
+        <div><strong>Booking ID:</strong> <span id="modalResId">#SP-1042</span></div>
+        <div><strong>Allocated Slot:</strong> <span id="modalSlotName" style="color: #60a5fa; font-weight: 700;">A01</span></div>
+        <div><strong>Status:</strong> <span style="color: #34d399; font-weight: 700;">ACTIVE (Pessimistic Lock Acquired)</span></div>
+      </div>
+
+      <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="closeBookingModal()">
+        Done &bull; Close Pass
+      </button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p style="font-weight: 600; color: #fff; margin-bottom: 4px;">SmartPark Campus Management System</p>
+      <p>Department of Computer Science &amp; Engineering &bull; SRM Institute of Science and Technology &bull; 2026</p>
+    </div>
+  </footer>
+
+  <!-- Simulation Logic Script -->
+  <script>
+    const buildings = {
+      cse: { name: 'CSE Block', x: 10, y: 50 },
+      mech: { name: 'Mech Block', x: 80, y: 20 },
+      lib: { name: 'Library', x: 40, y: 40 },
+      play: { name: 'SRM Playground', x: 90, y: 90 }
+    };
+
+    const slots = [
+      { id: 1, name: 'A01', x: 15, y: 45, type: 'TWO_WHEELER', isEv: false, occupied: false },
+      { id: 2, name: 'A02', x: 15, y: 46, type: 'TWO_WHEELER', isEv: false, occupied: false },
+      { id: 3, name: 'A03', x: 16, y: 45, type: 'TWO_WHEELER', isEv: false, occupied: true },
+      { id: 4, name: 'F01', x: 35, y: 35, type: 'FOUR_WHEELER', isEv: false, occupied: false },
+      { id: 5, name: 'F02', x: 36, y: 35, type: 'FOUR_WHEELER', isEv: false, occupied: true },
+      { id: 6, name: 'EV01', x: 10, y: 10, type: 'ALL', isEv: true, occupied: false },
+      { id: 7, name: 'EV02', x: 12, y: 10, type: 'ALL', isEv: true, occupied: false },
+      { id: 8, name: 'P01', x: 90, y: 90, type: 'ALL', isEv: false, occupied: false },
+      { id: 9, name: 'P02', x: 91, y: 90, type: 'ALL', isEv: false, occupied: false },
+      { id: 10, name: 'P03', x: 92, y: 90, type: 'ALL', isEv: false, occupied: true },
+      { id: 11, name: 'P04', x: 90, y: 91, type: 'ALL', isEv: false, occupied: false },
+      { id: 12, name: 'P05', x: 91, y: 91, type: 'ALL', isEv: false, occupied: false }
+    ];
+
+    let currentRecommendedSlot = null;
+
+    function runSimulation() {
+      const bKey = document.getElementById('selBuilding').value;
+      const vType = document.getElementById('selVehicle').value;
+      const role = document.getElementById('selRole').value;
+
+      const targetBuilding = buildings[bKey];
+      const isEvVehicle = (vType === 'EV');
+
+      // Filter available candidates
+      let candidates = slots.filter(s => !s.occupied);
+      if (candidates.length === 0) return;
+
+      // Compute score for each candidate
+      candidates.forEach(s => {
+        let dist = Math.sqrt(Math.pow(s.x - targetBuilding.x, 2) + Math.pow(s.y - targetBuilding.y, 2));
+        let score = 1000.0 - (dist * 10);
+
+        if (isEvVehicle && s.isEv) {
+          score += 500; // EV matching bonus
+        }
+        if (role === 'FACULTY') {
+          score += 100; // Faculty priority bonus
+        }
+
+        s.currentDist = dist;
+        s.currentScore = score;
+      });
+
+      // Sort descending
+      candidates.sort((a, b) => b.currentScore - a.currentScore);
+      currentRecommendedSlot = candidates[0];
+
+      // Update Info Panel
+      document.getElementById('statSlot').innerText = currentRecommendedSlot.name;
+      document.getElementById('statDist').innerText = (currentRecommendedSlot.currentDist * 1.5).toFixed(1) + ' meters';
+      document.getElementById('statScore').innerText = currentRecommendedSlot.currentScore.toFixed(1) + ' pts';
+      document.getElementById('statEv').innerText = currentRecommendedSlot.isEv ? '⚡ Active Station' : 'Standard Bay';
+
+      // Render Slots
+      const grid = document.getElementById('slotsGrid');
+      grid.innerHTML = '';
+
+      slots.forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'slot-card';
+        if (s.occupied) {
+          div.classList.add('occupied');
+        } else if (currentRecommendedSlot && s.id === currentRecommendedSlot.id) {
+          div.classList.add('recommended');
+        } else if (s.isEv) {
+          div.classList.add('ev');
+        }
+
+        let badgeText = s.occupied ? 'Occupied' : (currentRecommendedSlot && s.id === currentRecommendedSlot.id ? '★ Best Match' : (s.isEv ? '⚡ EV' : 'Available'));
+        let badgeClass = s.occupied ? 'badge-occ' : (currentRecommendedSlot && s.id === currentRecommendedSlot.id ? 'badge-rec' : (s.isEv ? 'badge-ev' : 'badge-avail'));
+
+        div.innerHTML = `
+          <div class="slot-name">${s.name}</div>
+          <span class="slot-badge ${badgeClass}">${badgeText}</span>
+        `;
+
+        if (!s.occupied) {
+          div.onclick = () => {
+            currentRecommendedSlot = s;
+            document.getElementById('statSlot').innerText = s.name;
+            document.getElementById('statDist').innerText = (s.currentDist ? (s.currentDist * 1.5).toFixed(1) : '12.4') + ' meters';
+            document.getElementById('statScore').innerText = (s.currentScore ? s.currentScore.toFixed(1) : '910.0') + ' pts';
+            document.getElementById('statEv').innerText = s.isEv ? '⚡ Active Station' : 'Standard Bay';
+            openBookingModal();
+          };
+        }
+
+        grid.appendChild(div);
+      });
+    }
+
+    function openBookingModal() {
+      if (!currentRecommendedSlot) return;
+      document.getElementById('modalSlotName').innerText = currentRecommendedSlot.name;
+      document.getElementById('modalResId').innerText = '#SP-' + Math.floor(1000 + Math.random() * 9000);
+      document.getElementById('modalOverlay').classList.add('active');
+    }
+
+    function closeBookingModal(e) {
+      document.getElementById('modalOverlay').classList.remove('active');
+    }
+
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', runSimulation);
+  </script>
+</body>
+</html>
